@@ -137,3 +137,9 @@ Qt compiled most of qtbase (4MB log), failed at eglconvenience: needs ANGLE EGL/
 headers (default -opengl dynamic). ANGLE on arm64 is a hard build; Krita runs on desktop
 GL. Set -opengl desktop -> drops EGL path. Rebuilding (multi-hour).
 
+
+## Qt EGL: -no-feature-egl
+szaman Qt fork builds eglconvenience even with -opengl desktop; qt_egl_p.h needs EGL/egl.h
+(ANGLE not built). C1083. Added -no-feature-egl -no-feature-eglfs to skip the module.
+Desktop GL only (fine for Krita).
+

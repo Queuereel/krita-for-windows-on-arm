@@ -83,19 +83,20 @@ index f42ff77..2f5f2d4 100644
                      COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/lib/libcrypto.lib -DDST=${EXTPREFIX}/lib -P ${KRITA_CI_INSTALL}
                      COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/lib/libssl.lib -DDST=${EXTPREFIX}/lib -P ${KRITA_CI_INSTALL}
 diff --git a/ext_qt/CMakeLists.txt b/ext_qt/CMakeLists.txt
-index 23bc910..9b308d9 100644
+index 23bc910..88ec411 100644
 --- a/ext_qt/CMakeLists.txt
 +++ b/ext_qt/CMakeLists.txt
-@@ -54,7 +54,7 @@ if (WIN32)
+@@ -54,7 +54,8 @@ if (WIN32)
          -skip qtwebchannel -skip qtwebengine -skip qtwebsockets -skip qtwebview
          -skip qtxmlpatterns -nomake examples -nomake tools
          -no-compile-examples -no-dbus -no-iconv -no-qml-debug
 -        -no-libproxy -no-system-proxies -icu -no-mtdev
 +        -no-libproxy -no-system-proxies -no-icu -no-mtdev
++        -no-feature-egl -no-feature-eglfs
          -skip qtcharts -skip qtdatavis3d -skip qtgamepad -skip qtnetworkauth
          -skip qtpurchasing -skip qtremoteobjects -skip qtscxml -skip qtserialbus
          -skip qtspeech -skip qtvirtualkeyboard -qt-sqlite
-@@ -123,7 +123,7 @@ if (WIN32)
+@@ -123,7 +124,7 @@ if (WIN32)
          )
        endif ()
      endif ()
