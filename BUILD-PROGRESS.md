@@ -179,3 +179,9 @@ the compiled libs. But boost::system is header-only since 1.69 (empty stub); hea
 BoostConfig.cmake + boost_system-config.cmake (INTERFACE target) install fine -- all Krita
 needs. Patched run-b2-with-destdir.cmake to tolerate the stub-lib skip iff headers installed.
 
+
+## python -> native arm64
+ext_python WIN32 branch downloaded prebuilt x64 embeddable (embed-amd64.zip). python.org
+ships embed-arm64.zip too; recipe now picks per-arch. python313.dll = ARM64. NOTE: embeddable
+lacks Python.h/python313.lib needed to compile sip/pyqt5 - must provide arm64 dev files for those.
+

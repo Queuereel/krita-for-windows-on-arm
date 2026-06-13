@@ -142,6 +142,31 @@ index f42ff77..2f5f2d4 100644
              INSTALL_COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/include -DDST=${EXTPREFIX}/include -P ${KRITA_CI_INSTALL_DIRECTORY}
                      COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/lib/libcrypto.lib -DDST=${EXTPREFIX}/lib -P ${KRITA_CI_INSTALL}
                      COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/lib/libssl.lib -DDST=${EXTPREFIX}/lib -P ${KRITA_CI_INSTALL}
+diff --git a/ext_python/CMakeLists.txt b/ext_python/CMakeLists.txt
+index 8c78c2f..1525ee4 100644
+--- a/ext_python/CMakeLists.txt
++++ b/ext_python/CMakeLists.txt
+@@ -102,10 +102,18 @@ if (UNIX)
+ 
+     endif()
+ elseif(WIN32)
++    # python.org ships embeddable packages per-arch; pick arm64 vs amd64.
++    if (CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64|arm64")
++        set(PY_EMBED_ARCH arm64)
++        set(PY_EMBED_MD5 0d2b5391a1df1319242f17a8339b8bc6)
++    else()
++        set(PY_EMBED_ARCH amd64)
++        set(PY_EMBED_MD5 370a345dbea8bbc1830a2385f24632d2)
++    endif()
+     ExternalProject_Add( ext_python
+         DOWNLOAD_DIR ${EXTERNALS_DOWNLOAD_DIR}
+-        URL https://www.python.org/ftp/python/3.13.5/python-3.13.5-embed-amd64.zip
+-        URL_MD5 370a345dbea8bbc1830a2385f24632d2
++        URL https://www.python.org/ftp/python/3.13.5/python-3.13.5-embed-${PY_EMBED_ARCH}.zip
++        URL_MD5 ${PY_EMBED_MD5}
+ 
+         CONFIGURE_COMMAND ""
+         BUILD_COMMAND ""
 diff --git a/ext_qt/CMakeLists.txt b/ext_qt/CMakeLists.txt
 index 23bc910..b45d502 100644
 --- a/ext_qt/CMakeLists.txt
