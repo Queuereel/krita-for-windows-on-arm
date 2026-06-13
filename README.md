@@ -1,4 +1,6 @@
-# Krita for Windows on ARM64 (native build)
+# Krita for Windows on Arm
+
+Native **ARM64** build of Krita for Windows.
 
 Build **Krita** natively for **Windows 11 on ARM64** — no x64 emulation — from
 source, with a single click.
