@@ -131,3 +131,9 @@ Qt5.15 configure passed with -no-icu. jom missing (ext_jom not wired as build de
 fetched jom 1.1.3 into prefix/bin. Qt now compiling for arm64 via jom (multi-hour).
 TODO durable: wire ext_jom as ext_qt build dependency OR add jom to one-click setup.
 
+
+## Qt: -opengl desktop (avoid ANGLE/EGL)
+Qt compiled most of qtbase (4MB log), failed at eglconvenience: needs ANGLE EGL/GLES
+headers (default -opengl dynamic). ANGLE on arm64 is a hard build; Krita runs on desktop
+GL. Set -opengl desktop -> drops EGL path. Rebuilding (multi-hour).
+
