@@ -19,6 +19,12 @@ call "%VSROOT%\VC\Auxiliary\Build\vcvarsall.bat" arm64
 :: test) can load the dependency DLLs at runtime.
 set "PATH=C:\kritadeps\i\bin;%PATH%"
 
+:: Qt's library DETECTION searches QMAKE_DEFAULT_INCDIRS/LIBDIRS, which for MSVC
+:: come from the INCLUDE/LIB env vars (NOT configure -I/-L). Append our prefix so
+:: Qt finds icu/etc. headers + libs during configure feature probes.
+set "INCLUDE=C:\kritadeps\i\include;%INCLUDE%"
+set "LIB=C:\kritadeps\i\lib;%LIB%"
+
 :: Let pkg-config (and meson) find .pc files from the shared install prefix
 :: (e.g. freetype2.pc -> Requires: libpng -> libpng.pc lives in the main prefix)
 set "PKG_CONFIG_PATH=C:\kritadeps\i\lib\pkgconfig;C:\kritadeps\i\share\pkgconfig;%PKG_CONFIG_PATH%"

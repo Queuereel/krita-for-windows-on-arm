@@ -117,3 +117,11 @@ meson, nasm, patch, git, python, sed, pkgconf. Pip: sip, PyQt-builder, lxml, pyy
 python-gitlab, ply, packaging, meson, setuptools, wheel. No upcoming step should
 stall on a missing host tool; remaining work is recipe-level arm64 fixes.
 
+
+## Qt ICU resolved via -no-icu (known reduction)
+Qt5.15 ICU detection on Windows ARM64 is resistant: -I and INCLUDE env are ignored by
+Qt's library probe, and -pkg-config is gated off on win32 (tests.pkg-config fails).
+It was blocking the entire multi-hour Qt build. Set -no-icu to unblock. Krita i18n uses
+ki18n/gettext, not Qt-ICU, so impact is minimal. REVISIT later: patch Qt mkspec
+QMAKE_INCDIR_ICU/QMAKE_LIBS_ICU, or place icu headers in a default-searched dir.
+
