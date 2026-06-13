@@ -1,6 +1,11 @@
 # Krita source (large; fetched/extracted separately, not part of the tooling repo)
 krita-src/
 
+# Upstream dep repos (cloned by the build; arm64 patches tracked separately)
+krita-deps-management/
+krita-ci-utilities/
+deps-build/
+
 # Build output / Craft root if ever placed inside the repo
 CraftRoot/
 build/

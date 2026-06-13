@@ -53,4 +53,13 @@ class Package(AutoToolsPackageBase):
                 # at column 0 are left intact.
                 new = re.sub(r"[ \t]+libunistring\.res\.lo\b", "", txt)
                 mk.write_text(new, encoding="utf-8")
+
+            # The test suite links its own .res resources (also x64-only via windres)
+            # and isn't needed to install the library. Drop the test subdirs.
+            top = Path(self.buildDir()) / "Makefile"
+            if top.exists():
+                t = top.read_text(encoding="utf-8", errors="ignore")
+                t2 = re.sub(r"(?m)^(SUBDIRS\s*=.*?)\s+tests\s+install-tests\b", r"\1", t)
+                if t2 != t:
+                    top.write_text(t2, encoding="utf-8")
         return True

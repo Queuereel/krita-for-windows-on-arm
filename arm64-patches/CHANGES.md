@@ -36,6 +36,14 @@ These are the patched files (mirrored here from `C:\CraftRoot\craft-tmp\...`).
    link); MSVC rc.exe rejects windres flags. Strip the optional .res object
    from the generated Makefiles. (Same fix will be needed for gettext.)
 
+## Pre-emptive fixes (authored ahead of reaching the package)
+7. **blueprints/libs/libffi/libffi.py** — assembler arch flag was set only for
+   x86_64 (`-m64`); added arm64 -> `-marm64` so msvcc.sh uses armasm64 for the
+   aarch64 sysv asm.
+8. **blueprints/libs/python/python.py** — was hardcoded to x64: set
+   `VCPKG_TARGET_ARCHITECTURE` per-arch, and read CPython's PCbuild output from
+   `PCbuild/arm64/` (not `amd64/`) on arm64.
+
 ## Status checkpoint
 Core deps built (native arm64): perl, nasm, openssl, iconv, liblzma, icu,
 libxml2. In progress: libunistring. Remaining core: gettext, sqlite, libffi,
