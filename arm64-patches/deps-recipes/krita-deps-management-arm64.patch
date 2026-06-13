@@ -87,6 +87,47 @@ index e4bdef4..4e6b368 100644
 +    endif()
  endif()
 \ No newline at end of file
+diff --git a/ext_libx265/CMakeLists.txt b/ext_libx265/CMakeLists.txt
+index 008f6c9..6f1dc80 100644
+--- a/ext_libx265/CMakeLists.txt
++++ b/ext_libx265/CMakeLists.txt
+@@ -43,7 +43,9 @@ ExternalProject_Add(
+           COMMAND ${PATCH_COMMAND} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/patches/0002-Skip-PDB-in-MinGW.patch
+           COMMAND ${PATCH_COMMAND} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/patches/0003-Fix-a-crash-when-trying-to-export-a-lossless-image.patch
+ 
+-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTPREFIX} -DCMAKE_BUILD_TYPE=${GLOBAL_BUILD_TYPE} ${GLOBAL_PROFILE} -DENABLE_SHARED=TRUE  -DENABLE_HDR10_PLUS=TRUE -DEXTRA_LIB:String=${x265_10bit_LIBRARY}$<SEMICOLON>${x265_12bit_LIBRARY} -DEXTRA_LINK_FLAGS:String=${x265_EXTRA_LINK_FLAGS} -DLINKED_10BIT=TRUE -DLINKED_12BIT=TRUE
++    # x265's aarch64 NEON code uses GCC/Clang intrinsics MSVC lacks (C2065). Disable
++    # assembly on arm64 -> portable C fallback (HEVC fully functional, just unaccelerated).
++    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTPREFIX} -DCMAKE_BUILD_TYPE=${GLOBAL_BUILD_TYPE} ${GLOBAL_PROFILE} -DENABLE_SHARED=TRUE  -DENABLE_HDR10_PLUS=TRUE -DEXTRA_LIB:String=${x265_10bit_LIBRARY}$<SEMICOLON>${x265_12bit_LIBRARY} -DEXTRA_LINK_FLAGS:String=${x265_EXTRA_LINK_FLAGS} -DLINKED_10BIT=TRUE -DLINKED_12BIT=TRUE -DENABLE_ASSEMBLY=OFF
+ 
+     UPDATE_COMMAND ""
+ )
+diff --git a/ext_libx265_10bit/CMakeLists.txt b/ext_libx265_10bit/CMakeLists.txt
+index 0d7e69c..e552756 100644
+--- a/ext_libx265_10bit/CMakeLists.txt
++++ b/ext_libx265_10bit/CMakeLists.txt
+@@ -41,7 +41,7 @@ ExternalProject_Add(ext_libx265_10bit
+           COMMAND ${PATCH_COMMAND} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/../ext_libx265/patches/0001-ext_heif-Make-sure-that-pthreads-are-not-linked-it-o.patch
+           COMMAND ${PATCH_COMMAND} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/../ext_libx265/patches/0002-Skip-PDB-in-MinGW.patch
+ 
+-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTPREFIX} -DCMAKE_BUILD_TYPE=${GLOBAL_BUILD_TYPE} ${GLOBAL_PROFILE} -DHIGH_BIT_DEPTH=TRUE -DEXPORT_C_API=FALSE -DENABLE_CLI=FALSE -DENABLE_SHARED=FALSE
++    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTPREFIX} -DCMAKE_BUILD_TYPE=${GLOBAL_BUILD_TYPE} ${GLOBAL_PROFILE} -DHIGH_BIT_DEPTH=TRUE -DEXPORT_C_API=FALSE -DENABLE_CLI=FALSE -DENABLE_SHARED=FALSE -DENABLE_ASSEMBLY=OFF
+     INSTALL_COMMAND ${CMAKE_COMMAND} -DSRC=${x265_LIBDIR}${x265_LIBRARY} -DDST=${EXTPREFIX}/lib -DRENAME=${x265_10bit_LIBRARY} -P  ${KRITA_CI_INSTALL}
+     UPDATE_COMMAND ""
+ )
+diff --git a/ext_libx265_12bit/CMakeLists.txt b/ext_libx265_12bit/CMakeLists.txt
+index bc3c474..8e3003d 100644
+--- a/ext_libx265_12bit/CMakeLists.txt
++++ b/ext_libx265_12bit/CMakeLists.txt
+@@ -43,7 +43,7 @@ ExternalProject_Add(ext_libx265_12bit
+ 
+ 
+     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTPREFIX} -DCMAKE_BUILD_TYPE=${GLOBAL_BUILD_TYPE} ${GLOBAL_PROFILE} 
+-    -DHIGH_BIT_DEPTH=TRUE -DMAIN12=TRUE -DEXPORT_C_API=FALSE  -DENABLE_CLI=FALSE -DENABLE_SHARED=FALSE
++    -DHIGH_BIT_DEPTH=TRUE -DMAIN12=TRUE -DEXPORT_C_API=FALSE  -DENABLE_CLI=FALSE -DENABLE_SHARED=FALSE -DENABLE_ASSEMBLY=OFF
+     INSTALL_COMMAND ${CMAKE_COMMAND} -DSRC=${x265_LIBDIR}${x265_LIBRARY} -DDST=${EXTPREFIX}/lib -DRENAME=${x265_12bit_LIBRARY} -P  ${KRITA_CI_INSTALL}
+     UPDATE_COMMAND ""
+ )
 diff --git a/ext_openexr/CMakeLists.txt b/ext_openexr/CMakeLists.txt
 index 6d5729b..ca6575b 100644
 --- a/ext_openexr/CMakeLists.txt
