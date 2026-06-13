@@ -102,3 +102,11 @@ error; candidate causes: include/lib path not reaching config.tests, ICU lib-nam
 or data lib. Fallback to unblock Qt build + revisit: configure -no-icu (Krita loses some i18n).
 Also pending: rebuild libxml2 (omitted), fix python x64, boost/x265/ffmpeg/openh264/seexpr.
 
+
+## Qt ICU root cause (config.log at ext_qt\b\config.log)
+icu test: 'unicode/utypes.h not found in [] and global paths' -- Qt library probe gets
+EMPTY include list; -I prefix\include not reaching library detection. jpeg/webp probes
+DO compile but fail at link: Qt links 'libjpeg.lib'/'webp.lib' but our deps install
+'jpeg.lib'/'libwebp.lib' (name mismatch). NEXT: confirm -I in configure.bat args; fix
+include-path delivery for Qt probes; add lib-name aliases or fix -system-* expectations.
+
