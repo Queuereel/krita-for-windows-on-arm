@@ -125,3 +125,9 @@ It was blocking the entire multi-hour Qt build. Set -no-icu to unblock. Krita i1
 ki18n/gettext, not Qt-ICU, so impact is minimal. REVISIT later: patch Qt mkspec
 QMAKE_INCDIR_ICU/QMAKE_LIBS_ICU, or place icu headers in a default-searched dir.
 
+
+## Qt CONFIGURED + COMPILING (milestone)
+Qt5.15 configure passed with -no-icu. jom missing (ext_jom not wired as build dep) ->
+fetched jom 1.1.3 into prefix/bin. Qt now compiling for arm64 via jom (multi-hour).
+TODO durable: wire ext_jom as ext_qt build dependency OR add jom to one-click setup.
+
