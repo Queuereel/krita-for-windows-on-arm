@@ -43,6 +43,22 @@ index e4bdef4..dbc51dc 100644
      else()
          set(B2_COMMAND "./b2")
      endif()
+diff --git a/ext_openexr/CMakeLists.txt b/ext_openexr/CMakeLists.txt
+index 6d5729b..ca6575b 100644
+--- a/ext_openexr/CMakeLists.txt
++++ b/ext_openexr/CMakeLists.txt
+@@ -15,6 +15,11 @@ ExternalProject_Add( ext_openexr
+     INSTALL_DIR ${EXTPREFIX}
+     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTPREFIX} -DCMAKE_BUILD_TYPE=${GLOBAL_BUILD_TYPE} ${GLOBAL_PROFILE} -DNAMESPACE_VERSIONING=OFF
+ 
++    # ImfSimd.h enables IMF_HAVE_SSE2 for ANY MSVC (_MSC_VER>=1300), wrongly
++    # including <emmintrin.h> on arm64 (C1189). Gate SSE2 on x86/x64 only;
++    # arm64 then uses the scalar fallback.
++    PATCH_COMMAND sed -i [[s/!_M_CEE_PURE)/!_M_CEE_PURE \&\& (defined(_M_X64) || defined(_M_IX86)))/]] <SOURCE_DIR>/OpenEXR/IlmImf/ImfSimd.h
++
+     UPDATE_COMMAND ""
+ )
+ 
 diff --git a/ext_openssl/CMakeLists.txt b/ext_openssl/CMakeLists.txt
 index f42ff77..2f5f2d4 100644
 --- a/ext_openssl/CMakeLists.txt

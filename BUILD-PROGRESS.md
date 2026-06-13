@@ -164,3 +164,11 @@ ROOT CAUSE of the 12-iteration ICU saga: stale config.cache (cache.icu.result=fa
 masked every fix - never re-tested. Wiping config.cache + .qmake.stash forced re-test;
 recipe's QMAKE_INCDIR_ICU then worked. Lesson: clear Qt config.cache after recipe changes.
 
+
+## Post-Qt waves: KF5 + openexr fix
+Built: gettext + 11 KF5 (karchive,kconfig,kcoreaddons,ki18n,kwidgetsaddons,kcompletion,
+kguiaddons,kitemmodels,kitemviews,kwindowsystem,kcrash) + kimageformats,kdcraw,quazip,seexpr.
+libxml2 = SKIP_NOEXIST (not a krita dep). openexr v2.5.9: ImfSimd.h enabled SSE2 for any
+MSVC -> C1189 on arm64; PATCH gates SSE2 on _M_X64/_M_IX86. Remaining hard: boost, python(x64),
+libx265, openh264.
+
