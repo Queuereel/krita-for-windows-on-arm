@@ -172,3 +172,10 @@ libxml2 = SKIP_NOEXIST (not a krita dep). openexr v2.5.9: ImfSimd.h enabled SSE2
 MSVC -> C1189 on arm64; PATCH gates SSE2 on _M_X64/_M_IX86. Remaining hard: boost, python(x64),
 libx265, openh264.
 
+
+## boost: header-only (CORRECT for 1.81, not a shortcut)
+boost 1.81 msvc.jam has NO arm64 support -> b2 reports 'architecture: none', can't build
+the compiled libs. But boost::system is header-only since 1.69 (empty stub); headers +
+BoostConfig.cmake + boost_system-config.cmake (INTERFACE target) install fine -- all Krita
+needs. Patched run-b2-with-destdir.cmake to tolerate the stub-lib skip iff headers installed.
+

@@ -29,7 +29,7 @@ index 7b6ccd4..50f4d39 100644
              BUILD_COMMAND ${CMAKE_COMMAND} -DPREFIX=${EXTPREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/run-b2-with-destdir.cmake -- ${BUILD_ARGS}
              INSTALL_COMMAND ${CMAKE_COMMAND} -DPREFIX=${EXTPREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/run-b2-with-destdir.cmake -- ${BUILD_ARGS} install
 diff --git a/ext_boost/run-b2-with-destdir.cmake b/ext_boost/run-b2-with-destdir.cmake
-index e4bdef4..dbc51dc 100644
+index e4bdef4..4e6b368 100644
 --- a/ext_boost/run-b2-with-destdir.cmake
 +++ b/ext_boost/run-b2-with-destdir.cmake
 @@ -14,7 +14,9 @@ endif()
@@ -43,6 +43,23 @@ index e4bdef4..dbc51dc 100644
      else()
          set(B2_COMMAND "./b2")
      endif()
+@@ -44,5 +46,14 @@ message ("Running b2 with args: --prefix=${PREFIX} ${EXTRA_ARGS}")
+ 
+ exec_program(${B2_COMMAND} ARGS --prefix=${PREFIX} ${EXTRA_ARGS} RETURN_VALUE RETVAL)
+ if (RETVAL)
+-    message(FATAL_ERROR "failed to run b2")
++    # On Windows arm64, boost 1.81's msvc.jam has no ARM64 support, so b2 cannot
++    # build the (header-only since 1.69, empty-stub) compiled libs and returns
++    # nonzero. The headers + CMake config still install, which is all that's
++    # needed for header-only components like boost::system. Tolerate the skip
++    # iff the headers actually installed; otherwise it's a real failure.
++    if (EXISTS "${PREFIX}/include/boost-1_81/boost/system.hpp")
++        message(WARNING "b2 returned ${RETVAL}: compiled libs skipped (boost is header-only here); headers+config installed, continuing.")
++    else()
++        message(FATAL_ERROR "failed to run b2")
++    endif()
+ endif()
+\ No newline at end of file
 diff --git a/ext_openexr/CMakeLists.txt b/ext_openexr/CMakeLists.txt
 index 6d5729b..ca6575b 100644
 --- a/ext_openexr/CMakeLists.txt
