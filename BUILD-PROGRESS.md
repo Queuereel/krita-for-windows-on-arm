@@ -110,3 +110,10 @@ DO compile but fail at link: Qt links 'libjpeg.lib'/'webp.lib' but our deps inst
 'jpeg.lib'/'libwebp.lib' (name mismatch). NEXT: confirm -I in configure.bat args; fix
 include-path delivery for Qt probes; add lib-name aliases or fix -system-* expectations.
 
+
+## Host toolchain complete (all upcoming steps)
+Verified on PATH via dep-env: cl/link/nmake (arm64), cmake, ninja, perl(Strawberry),
+meson, nasm, patch, git, python, sed, pkgconf. Pip: sip, PyQt-builder, lxml, pyyaml,
+python-gitlab, ply, packaging, meson, setuptools, wheel. No upcoming step should
+stall on a missing host tool; remaining work is recipe-level arm64 fixes.
+
