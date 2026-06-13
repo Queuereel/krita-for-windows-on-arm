@@ -143,3 +143,10 @@ szaman Qt fork builds eglconvenience even with -opengl desktop; qt_egl_p.h needs
 (ANGLE not built). C1083. Added -no-feature-egl -no-feature-eglfs to skip the module.
 Desktop GL only (fine for Krita).
 
+
+## DIRECTIVE: no shortcuts, fully functional
+Reverted Qt shortcuts: back to -icu and -opengl dynamic (ANGLE). Building ext_googleangle
+(CMake/vcpkg-style ANGLE, arm64-capable, Krita's GL renderer). TODO full build: real ICU
+detection, ANGLE+EGL+dynamic GL Qt, boost (proper), python arm64, libx265/openh264/
+openexr/seexpr/libxml2, KF5, sip/pyqt5, ffmpeg/mlt/quazip, Krita. No -no-* feature drops.
+
