@@ -1,5 +1,5 @@
 diff --git a/ext_boost/CMakeLists.txt b/ext_boost/CMakeLists.txt
-index 7b6ccd4..50f4d39 100644
+index 7b6ccd4..222b21c 100644
 --- a/ext_boost/CMakeLists.txt
 +++ b/ext_boost/CMakeLists.txt
 @@ -78,7 +78,13 @@ if(WIN32)
@@ -28,6 +28,33 @@ index 7b6ccd4..50f4d39 100644
              CONFIGURE_COMMAND <SOURCE_DIR>/bootstrap.bat msvc --prefix=${EXTPREFIX}
              BUILD_COMMAND ${CMAKE_COMMAND} -DPREFIX=${EXTPREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/run-b2-with-destdir.cmake -- ${BUILD_ARGS}
              INSTALL_COMMAND ${CMAKE_COMMAND} -DPREFIX=${EXTPREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/run-b2-with-destdir.cmake -- ${BUILD_ARGS} install
+@@ -104,13 +114,19 @@ if(WIN32)
+         else()
+             set(KRITA_boost_COMPILER_VERSION ${MSVC_TOOLSET_VERSION})
+         endif()
+-        ExternalProject_Add_Step(
+-            ext_boost
+-            pre_install
+-            COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/build-dir/boost/bin.v2/libs/system/build/vc-${KRITA_boost_COMPILER_VERSION}/release/threading-multi/visibility-hidden/boost_system-vc${KRITA_boost_COMPILER_VERSION}-mt-x32-1_81.dll -DDST=${EXTPREFIX}/bin -P ${KRITA_CI_INSTALL}
+-            COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/build-dir/boost/bin.v2/libs/system/build/vc-${KRITA_boost_COMPILER_VERSION}/release/threading-multi/visibility-hidden/boost_system-vc${KRITA_boost_COMPILER_VERSION}-mt-x64-1_81.dll -DDST=${EXTPREFIX}/bin -P ${KRITA_CI_INSTALL}
+-            DEPENDERS install
+-        )
++        # On arm64, b2 can't build the compiled boost_system stub (boost 1.81
++        # msvc.jam has no ARM64 support) and boost::system is header-only anyway,
++        # so there's no DLL to copy. Skip this step on arm64 (the x32/x64 paths
++        # wouldn't match arm64 regardless).
++        if (NOT (CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64|arm64"))
++            ExternalProject_Add_Step(
++                ext_boost
++                pre_install
++                COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/build-dir/boost/bin.v2/libs/system/build/vc-${KRITA_boost_COMPILER_VERSION}/release/threading-multi/visibility-hidden/boost_system-vc${KRITA_boost_COMPILER_VERSION}-mt-x32-1_81.dll -DDST=${EXTPREFIX}/bin -P ${KRITA_CI_INSTALL}
++                COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/build-dir/boost/bin.v2/libs/system/build/vc-${KRITA_boost_COMPILER_VERSION}/release/threading-multi/visibility-hidden/boost_system-vc${KRITA_boost_COMPILER_VERSION}-mt-x64-1_81.dll -DDST=${EXTPREFIX}/bin -P ${KRITA_CI_INSTALL}
++                DEPENDERS install
++            )
++        endif()
+     endif()
+ elseif(ANDROID)
+     set (BUILD_ARGS --with-libraries=system --boost=1.81.0 --arch=${ANDROID_ABI} ${CMAKE_ANDROID_NDK})
 diff --git a/ext_boost/run-b2-with-destdir.cmake b/ext_boost/run-b2-with-destdir.cmake
 index e4bdef4..4e6b368 100644
 --- a/ext_boost/run-b2-with-destdir.cmake
