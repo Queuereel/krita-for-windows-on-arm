@@ -23,6 +23,10 @@ unibreak · nasm · fribidi · extra_cmake_modules · pkgconfig · freetype(+har
 - meson installed via pip; added to build env PATH (fribidi/harfbuzz)
 - pkgconfig built early so meson can resolve freetype2 (harfbuzz)
 - relocated build to no-space path (meson/Qt break on spaces)
+- added `PKG_CONFIG_PATH` (main prefix) to build env so `.pc` Requires chains resolve
+- created `libpng.pc`/`libpng16.pc` in prefix (ext_png installs CMake config but no
+  `.pc`; freetype2.pc's `Requires: libpng` needs it for harfbuzz meson). TODO: make
+  this durable via a post-png fixup in the one-click flow.
 
 ### ⬜ Pending — mid tier
 openssl (expect `VC-WIN64-ARM`) · boost (expect `architecture=arm address-model=64`) ·
