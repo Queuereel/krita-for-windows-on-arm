@@ -1,0 +1,193 @@
+# -*- coding: utf-8 -*-
+# Copyright Hannah von Reth <vonreth@kde.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+import os
+
+import info
+import utils
+from CraftCompiler import CraftCompiler
+from CraftCore import CraftCore
+from CraftOS.osutils import OsUtils
+from CraftStandardDirs import CraftStandardDirs
+from Package.AutoToolsPackageBase import AutoToolsPackageBase
+from Package.CMakePackageBase import CMakePackageBase
+from Utils import CraftHash
+from Utils.Arguments import Arguments
+
+
+class subinfo(info.infoclass):
+    def setTargets(self):
+        for ver in ["3.2.1", "3.3.1", "3.3.2", "3.4.0", "3.4.1", "3.4.2", "3.4.3", "3.5.1", "3.5.2", "3.5.3", "3.5.4", "3.5.5", "3.5.6", "3.6.1", "3.6.2", "4.0.0"]:
+            self.targets[ver] = f"https://openssl.org/source/openssl-{ver}.tar.gz"
+            self.targetInstSrc[ver] = f"openssl-{ver}"
+            self.targetDigestUrls[ver] = ([f"https://openssl.org/source/openssl-{ver}.tar.gz.sha256"], CraftHash.HashAlgorithm.SHA256)
+
+        self.patchLevel["3.3.1"] = 1
+
+        self.patchToApply["3.5.5"] = [
+            ("29826.patch", 1),  # see https://github.com/openssl/openssl/pull/29826
+        ]
+        self.patchLevel["3.5.5"] = 1
+
+        self.description = "The OpenSSL runtime environment"
+        self.webpage = "https://openssl.org"
+
+        # set the default config for openssl 1.1
+        if self.options.buildStatic:
+            self.options.configure.staticArgs = Arguments(["no-shared"])
+        else:
+            self.options.configure.staticArgs = Arguments(["shared"])
+        self.options.configure.args += [
+            "threads",
+            "no-rc5",
+            "no-idea",
+            "no-ssl3-method",
+            "no-weak-ssl-ciphers",
+            "no-heartbeats",
+            "no-dynamic-engine",
+            "no-docs",
+            "no-tests",
+            "--libdir=lib",
+            f"--openssldir={OsUtils.toUnixPath(CraftCore.standardDirs.craftRoot())}/etc/ssl",
+        ]
+
+        self.defaultTarget = "3.5.6"
+
+    def setDependencies(self):
+        self.runtimeDependencies["virtual/base"] = None
+        self.buildDependencies["dev-utils/perl"] = None
+        self.runtimeDependencies["libs/zlib"] = None
+        if CraftCore.compiler.isMSVC():
+            self.buildDependencies["dev-utils/nasm"] = None
+
+
+class PackageCMake(CMakePackageBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.staticBuild = False
+        self.supportsNinja = False
+        self.subinfo.options.make.supportsMultijob = False
+        self.subinfo.options.install.args += ["install_sw", f"DESTDIR={self.installDir()}"]
+
+        self.env = {}
+        if CraftCore.compiler.isAndroid:
+            ndkToolchainPath = os.path.join(os.environ["ANDROID_NDK"], "toolchains/llvm/prebuilt", os.environ.get("ANDROID_NDK_HOST", "linux-x86_64"), "bin")
+            self.env["PATH"] = os.pathsep.join([ndkToolchainPath, os.environ["PATH"]])
+            self.env["CFLAGS"] = "-Os"
+            self.subinfo.options.configure.args += [
+                f"android-{CraftCore.compiler.androidArchitecture}",
+                f"-D__ANDROID_API__={CraftCore.compiler.androidApiLevel()}",
+                "no-apps",
+            ]
+
+    def configure(self, defines=""):
+        self.enterBuildDir()
+        prefix = OsUtils.toUnixPath(CraftCore.standardDirs.craftRoot())
+        args = (
+            Arguments(["perl", os.path.join(self.sourceDir(), "Configure"), f"--prefix={prefix}"])
+            + self.subinfo.options.configure.args
+            + self.subinfo.options.configure.staticArgs
+        )
+        if not CraftCore.compiler.isAndroid:
+            args += [
+                "-FS",
+                f"-I{OsUtils.toUnixPath(os.path.join(CraftStandardDirs.craftRoot(), 'include'))}",
+                "VC-WIN64A"
+                if CraftCore.compiler.architecture == CraftCompiler.Architecture.x86_64
+                else "VC-WIN64-ARM"
+                if CraftCore.compiler.architecture == CraftCompiler.Architecture.arm64
+                else "VC-WIN32",
+            ]
+        with utils.ScopedEnv(self.env):
+            return utils.system(args)
+
+    def make(self):
+        with utils.ScopedEnv(self.env):
+            return super().make()
+
+    def install(self):
+        if not super().install():
+            return False
+        for f in self.blueprintDir().glob(".pkgconfig/*.pc"):
+            if not utils.configureFile(
+                f, self.imageDir() / "lib/pkgconfig" / f.name, {"CRAFT_ROOT": CraftCore.standardDirs.craftRoot(), "VERSION": self.buildTarget}
+            ):
+                return False
+        return True
+
+    def postInstall(self):
+        # remove API docs here as there is no build option for that
+        baseDir = self.installDir() / os.path.relpath(CraftCore.standardDirs.locations.data, CraftCore.standardDirs.craftRoot())
+        return utils.rmtree(baseDir / "doc") and utils.rmtree(baseDir / "man") and utils.rmtree(self.installDir() / "html")
+
+
+class PackageMSys(AutoToolsPackageBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # https://github.com/openssl/openssl/issues/18720
+        self.subinfo.options.configure.cflags += "-Wno-error=implicit-function-declaration"
+        if CraftCore.compiler.isMinGW():
+            if CraftCore.compiler.architecture == CraftCompiler.Architecture.x86_64:
+                self.platform = "mingw64"
+            else:
+                self.platform = "mingw"
+        else:
+            self.subinfo.options.configure.projectFile = "config"
+            self.platform = ""
+        self.supportsCCACHE = False
+        self.subinfo.options.configure.noDataRootDir = True
+        self.subinfo.options.configure.noCacheFile = True
+        self.subinfo.options.configure.noLibDir = True
+        self.subinfo.options.install.args += ["install_sw"]
+
+        if CraftCore.compiler.isGCC() and not CraftCore.compiler.isNative() and CraftCore.compiler.architecture == CraftCompiler.Architecture.x86_32:
+            self.subinfo.options.configure.args += ["linux-x86"]
+            self.subinfo.options.configure.projectFile = "Configure"
+        if CraftCore.compiler.isMacOS and not CraftCore.compiler.isNative():
+            self.subinfo.options.configure.args += [f"darwin64-{CraftCore.compiler.architecture.name.lower()}"]
+
+    def install(self):
+        self.subinfo.options.make.supportsMultijob = False
+        # TODO: don't install doc
+        if not super().install():
+            return False
+        # we don't want people to link to the static build but openssl doesn't provide an option to
+        # disable the static build
+        if self.subinfo.options.dynamic.buildStatic:
+            return True
+        else:
+            return utils.deleteFile(os.path.join(self.installDir(), "lib", "libcrypto.a")) and utils.deleteFile(
+                os.path.join(self.installDir(), "lib", "libssl.a")
+            )
+
+
+if CraftCore.compiler.isGCCLike() and not CraftCore.compiler.isMSVC() and not CraftCore.compiler.isAndroid:
+
+    class Package(PackageMSys):
+        pass
+
+else:
+
+    class Package(PackageCMake):
+        pass

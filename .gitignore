@@ -1,0 +1,15 @@
+# Krita source (large; fetched/extracted separately, not part of the tooling repo)
+krita-src/
+
+# Build output / Craft root if ever placed inside the repo
+CraftRoot/
+build/
+install/
+*.log
+
+# OS / editor cruft
+Thumbs.db
+desktop.ini
+.vs/
+.vscode/
+*.user
