@@ -15,6 +15,10 @@ set "SBPERL=C:\kritadeps\i\Strawberry\perl\bin;C:\kritadeps\i\Strawberry\c\bin"
 set "PATH=%SBPERL%;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%PYSCRIPTS%;C:\Program Files\Git\usr\bin;%PATH%"
 call "%VSROOT%\VC\Auxiliary\Build\vcvarsall.bat" arm64
 
+:: Put the install prefix bin on PATH so config-test probe exes (e.g. Qt's ICU
+:: test) can load the dependency DLLs at runtime.
+set "PATH=C:\kritadeps\i\bin;%PATH%"
+
 :: Let pkg-config (and meson) find .pc files from the shared install prefix
 :: (e.g. freetype2.pc -> Requires: libpng -> libpng.pc lives in the main prefix)
 set "PKG_CONFIG_PATH=C:\kritadeps\i\lib\pkgconfig;C:\kritadeps\i\share\pkgconfig;%PKG_CONFIG_PATH%"

@@ -85,3 +85,20 @@ NEEDS FIX:
 - openh264: meson x86 asm. seexpr: find_package. boost: b2 arm64 arch-check (lib skip).
 - All optional-ish except python+boost. Next big target: Qt6.
 
+
+## Qt5.15 finding
+Krita 6.0.2.1 uses Qt 5.15 (szaman fork), not Qt6. First configure error 'libs.icu
+failed' was NOT a Qt arm64 issue -- icu+libxml2 were accidentally omitted from the
+no-space prefix rebuild. Rebuilding them, then Qt configure proceeds (recipe already
+passes -I/-L prefix + -icu). Qt build is multi-hour.
+
+
+## Qt ICU blocker (next action)
+Qt5.15 configure: 'ICU ... no' -> 'libs.icu failed'. Confirmed: icu IS built native
+arm64 (icuuc-72.dll = ARM64), libs (icuuc/icuin/icudt.lib) + headers + .pc present,
+prefix bin on PATH. Test fails at compile/link, not runtime. config.log not at qtbase root.
+NEXT: add -verbose to ext_qt CONFIGURE to capture the real icu config-test compiler/linker
+error; candidate causes: include/lib path not reaching config.tests, ICU lib-name expectation,
+or data lib. Fallback to unblock Qt build + revisit: configure -no-icu (Krita loses some i18n).
+Also pending: rebuild libxml2 (omitted), fix python x64, boost/x265/ffmpeg/openh264/seexpr.
+
