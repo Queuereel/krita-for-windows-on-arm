@@ -157,3 +157,10 @@ eglconvenience (headers now found via -I prefix). Qt ICU: real fix = QMAKE_DEFAU
 LIBDIRS+=prefix (Qt's library detection searches those, not -I/INCLUDE). Qt rebuilding
 full: -icu + EGL + -opengl dynamic/ANGLE. Multi-hour.
 
+
+## QT 5.15.7 BUILT NATIVE ARM64 (full, no shortcuts) - MILESTONE
+Qt5Core.dll=ARM64, with ICU (icuuc-72.dll) + ANGLE (libEGL.dll) + EGL + dynamic GL.
+ROOT CAUSE of the 12-iteration ICU saga: stale config.cache (cache.icu.result=false)
+masked every fix - never re-tested. Wiping config.cache + .qmake.stash forced re-test;
+recipe's QMAKE_INCDIR_ICU then worked. Lesson: clear Qt config.cache after recipe changes.
+
