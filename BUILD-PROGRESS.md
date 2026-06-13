@@ -74,3 +74,14 @@ Hard failures (each a real arm64 port):
   by system policy). PATH-prepend insufficient; needs a source patch to build.bat to
   call with %~dp0. WIP.
 
+
+## Loop status checkpoint (~46 deps native arm64)
+Built: full image/core stack, openssl(src), ocio, libraw, fontconfig, mypaint,
+  fftw3, ogg, vorbis, flac, opus, lame, vpx, libde265, libaom, sdl2, libheif.
+NEEDS FIX:
+- python: built but python313.dll is x64 (MSBuild PCbuild didn't honor ARM64 platform);
+  must force /p:Platform=ARM64. Critical (pyqt5/scripting/Krita need arm64 python).
+- libx265 (+10/12bit): x86 asm; disable ASM or arm64 asm. ffmpeg: depends on x265.
+- openh264: meson x86 asm. seexpr: find_package. boost: b2 arm64 arch-check (lib skip).
+- All optional-ish except python+boost. Next big target: Qt6.
+
