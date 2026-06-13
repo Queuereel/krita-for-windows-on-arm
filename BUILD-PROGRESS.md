@@ -54,3 +54,16 @@ Recipe-level arm64 patches will be recorded here per `ext_` as they're made.
   required by bootstrap-pattern recipes like freetype that stage into a temp prefix
   then copy into the shared prefix.
 
+## Wave 3 (mid-tier) — 6 built, 4 hard
+Built: zug, lager, fontconfig, mypaint, libraw, **ocio** (OpenColorIO).
+Total native arm64 so far: ~31 deps.
+
+Hard failures (each a real arm64 port):
+- **openssl**: MSVC recipe DOWNLOADS a prebuilt x64 binary (no arm64 exists). Patched
+  ext_openssl to build 1.1.1w from source with `Configure VC-WIN64-ARM` + nmake on arm64.
+- **boost**: MSVC branch hardcodes `architecture=x86` and `bootstrap.bat msvc` reports
+  "Unknown toolset: msvc" on arm64. TODO: arch=arm address-model=64 + fix b2 engine build.
+- **openexr** (v2.5.9): `ImfDwaCompressor.cpp` pulls SSE2 `emmintrin.h` -> C1189 on arm64.
+  TODO: disable IMF_HAVE_SSE2 / SSE paths for arm64.
+- **seexpr** (optional plugin lib): a `find_package` at CMakeLists:222 fails. Low priority.
+

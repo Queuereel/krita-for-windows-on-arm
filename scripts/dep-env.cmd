@@ -9,7 +9,10 @@ set "VSROOT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
 :: Git's usr/bin provides patch.exe and other unix tools some ext_ recipes need
 :: meson (for ext_fribidi etc.) lives in the Python Scripts dir after pip install
 set "PYSCRIPTS=%LOCALAPPDATA%\Programs\Python\Python311\Scripts"
-set "PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;C:\Program Files\Git\usr\bin;%PYSCRIPTS%;%PATH%"
+:: Strawberry (Windows-native) perl MUST precede Git's msys perl: openssl/Qt Configure
+:: break with msys perl (it emits unix-style paths). Built by ext_strawberryperl.
+set "SBPERL=C:\kritadeps\i\Strawberry\perl\bin;C:\kritadeps\i\Strawberry\c\bin"
+set "PATH=%SBPERL%;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%PYSCRIPTS%;C:\Program Files\Git\usr\bin;%PATH%"
 call "%VSROOT%\VC\Auxiliary\Build\vcvarsall.bat" arm64
 
 :: Let pkg-config (and meson) find .pc files from the shared install prefix
