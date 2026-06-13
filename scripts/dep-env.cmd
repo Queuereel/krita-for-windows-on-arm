@@ -7,5 +7,7 @@
 
 set "VSROOT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
 :: Git's usr/bin provides patch.exe and other unix tools some ext_ recipes need
-set "PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;C:\Program Files\Git\usr\bin;%PATH%"
+:: meson (for ext_fribidi etc.) lives in the Python Scripts dir after pip install
+set "PYSCRIPTS=%LOCALAPPDATA%\Programs\Python\Python311\Scripts"
+set "PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;C:\Program Files\Git\usr\bin;%PYSCRIPTS%;%PATH%"
 call "%VSROOT%\VC\Auxiliary\Build\vcvarsall.bat" arm64
