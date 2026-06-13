@@ -150,3 +150,10 @@ Reverted Qt shortcuts: back to -icu and -opengl dynamic (ANGLE). Building ext_go
 detection, ANGLE+EGL+dynamic GL Qt, boost (proper), python arm64, libx265/openh264/
 openexr/seexpr/libxml2, KF5, sip/pyqt5, ffmpeg/mlt/quazip, Krita. No -no-* feature drops.
 
+
+## ANGLE built + Qt full rebuild (no shortcuts)
+ANGLE (ext_googleangle) built arm64: libEGL/libGLESv2 + EGL/egl.h in prefix. Fixes Qt
+eglconvenience (headers now found via -I prefix). Qt ICU: real fix = QMAKE_DEFAULT_INCDIRS/
+LIBDIRS+=prefix (Qt's library detection searches those, not -I/INCLUDE). Qt rebuilding
+full: -icu + EGL + -opengl dynamic/ANGLE. Multi-hour.
+

@@ -82,3 +82,18 @@ index f42ff77..2f5f2d4 100644
              INSTALL_COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/include -DDST=${EXTPREFIX}/include -P ${KRITA_CI_INSTALL_DIRECTORY}
                      COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/lib/libcrypto.lib -DDST=${EXTPREFIX}/lib -P ${KRITA_CI_INSTALL}
                      COMMAND ${CMAKE_COMMAND} -DSRC=<SOURCE_DIR>/lib/libssl.lib -DDST=${EXTPREFIX}/lib -P ${KRITA_CI_INSTALL}
+diff --git a/ext_qt/CMakeLists.txt b/ext_qt/CMakeLists.txt
+index 23bc910..436625c 100644
+--- a/ext_qt/CMakeLists.txt
++++ b/ext_qt/CMakeLists.txt
+@@ -62,6 +62,10 @@ if (WIN32)
+         -system-zlib -qt-pcre -system-libpng -system-libjpeg -openssl-linked -system-freetype -system-harfbuzz
+         -I ${EXTPREFIX}/include
+         -L ${EXTPREFIX}/lib
++        # Qt's library DETECTION (e.g. icu header existence) searches
++        # QMAKE_DEFAULT_INCDIRS/LIBDIRS, not -I/-L. Add the prefix so it finds them.
++        QMAKE_DEFAULT_INCDIRS+=${EXTPREFIX}/include
++        QMAKE_DEFAULT_LIBDIRS+=${EXTPREFIX}/lib
+         #
+         -opensource -confirm-license
+         -feature-relocatable
