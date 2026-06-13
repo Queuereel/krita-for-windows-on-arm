@@ -23,7 +23,10 @@ echo ===== ext_%1 =====
 if not exist "%DEPS%\ext_%1\CMakeLists.txt" ( echo SKIP_NOEXIST: %1 & exit /b 0 )
 cmake -S "%DEPS%\ext_%1" -B "%BLD%\ext_%1" -G Ninja -DEXTERNALS_DOWNLOAD_DIR="%DL%" -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="%PREFIX%"
 if errorlevel 1 ( echo CONFIGURE_FAILED: %1 & exit /b 0 )
-cmake --build "%BLD%\ext_%1"
+:: ext_install is the canonical install target (global-config.yml force-install-target).
+:: Some recipes (e.g. freetype) stage into a bootstrap prefix and only copy into the
+:: shared prefix via ext_install, so always drive that target.
+cmake --build "%BLD%\ext_%1" --target ext_install
 if errorlevel 1 ( echo BUILD_FAILED: %1 & exit /b 0 )
 echo OK_BUILT: %1
 exit /b 0

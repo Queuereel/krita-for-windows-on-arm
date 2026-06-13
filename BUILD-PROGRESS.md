@@ -1,4 +1,4 @@
-# Native ARM64 Krita — build progress log
+﻿# Native ARM64 Krita â€” build progress log
 
 Running record of the Windows-on-ARM64 native build. Updated as waves complete.
 Goal: **full-featured** Krita 6.0.2.1 (scripting + animation included).
@@ -11,15 +11,15 @@ Goal: **full-featured** Krita 6.0.2.1 (scripting + animation included).
 
 ## Dependency status
 
-### ✅ Built native ARM64 (unpatched unless noted)
-zlib · png · jpeg · tiff · webp · openjpeg · jpegxl · lcms2 · expat · exiv2 ·
-giflib · gsl · eigen3 · xsimd · immer · iconv · json_c · highway · brotli ·
-unibreak · nasm · fribidi · extra_cmake_modules · pkgconfig · freetype(+harfbuzz)
+### âœ… Built native ARM64 (unpatched unless noted)
+zlib Â· png Â· jpeg Â· tiff Â· webp Â· openjpeg Â· jpegxl Â· lcms2 Â· expat Â· exiv2 Â·
+giflib Â· gsl Â· eigen3 Â· xsimd Â· immer Â· iconv Â· json_c Â· highway Â· brotli Â·
+unibreak Â· nasm Â· fribidi Â· extra_cmake_modules Â· pkgconfig Â· freetype(+harfbuzz)
 
-> Note: 23/24 leaf+image deps built with **zero arm64 patches** — strong sign the
+> Note: 23/24 leaf+image deps built with **zero arm64 patches** â€” strong sign the
 > krita-deps-management/CMake path handles arm64 far better than Craft did.
 
-### 🔧 Fixes applied so far
+### ðŸ”§ Fixes applied so far
 - meson installed via pip; added to build env PATH (fribidi/harfbuzz)
 - pkgconfig built early so meson can resolve freetype2 (harfbuzz)
 - relocated build to no-space path (meson/Qt break on spaces)
@@ -28,22 +28,29 @@ unibreak · nasm · fribidi · extra_cmake_modules · pkgconfig · freetype(+har
   `.pc`; freetype2.pc's `Requires: libpng` needs it for harfbuzz meson). TODO: make
   this durable via a post-png fixup in the one-click flow.
 
-### ⬜ Pending — mid tier
-openssl (expect `VC-WIN64-ARM`) · boost (expect `architecture=arm address-model=64`) ·
-openexr · OpenColorIO (ocio) · libraw · quazip · mypaint · lager · zug · seexpr ·
-fontconfig · libheif/libaom/libde265 · zug
+### â¬œ Pending â€” mid tier
+openssl (expect `VC-WIN64-ARM`) Â· boost (expect `architecture=arm address-model=64`) Â·
+openexr Â· OpenColorIO (ocio) Â· libraw Â· quazip Â· mypaint Â· lager Â· zug Â· seexpr Â·
+fontconfig Â· libheif/libaom/libde265 Â· zug
 
-### ⬜ Pending — big rocks
-**Qt6** (the long pole) · KDE Frameworks 6 (karchive, kconfig, kcoreaddons, ki18n,
+### â¬œ Pending â€” big rocks
+**Qt6** (the long pole) Â· KDE Frameworks 6 (karchive, kconfig, kcoreaddons, ki18n,
 kwidgetsaddons, kcompletion, kcrash, kguiaddons, kitemmodels, kitemviews,
-kwindowsystem, kimageformats, kdcraw, …)
+kwindowsystem, kimageformats, kdcraw, â€¦)
 
-### ⬜ Pending — full-feature (hardest on arm64)
-python · sip · pyqt5 (scripting) · ffmpeg · mlt (animation) · sdl2 · openvino
+### â¬œ Pending â€” full-feature (hardest on arm64)
+python Â· sip Â· pyqt5 (scripting) Â· ffmpeg Â· mlt (animation) Â· sdl2 Â· openvino
 
-### ⬜ Final
-Build Krita 6.0.2.1 against prefix · verify native arm64 launch + features
+### â¬œ Final
+Build Krita 6.0.2.1 against prefix Â· verify native arm64 launch + features
 
 ## Changelog of important changes
 See `arm64-patches/CHANGES.md` (Craft-era learnings) and `PIVOT.md` (path change).
 Recipe-level arm64 patches will be recorded here per `ext_` as they're made.
+
+
+### Driver fix
+- build-deps.cmd now drives the `ext_install` target (global-config force-install-target),
+  required by bootstrap-pattern recipes like freetype that stage into a temp prefix
+  then copy into the shared prefix.
+
