@@ -47,3 +47,17 @@ Patch x86/x64 assumptions in the `ext_*` recipes as we hit them, e.g.:
 - `ext_openssl` — `VC-WIN64-ARM` target (same fix as the Craft attempt)
 - `ext_python` / sip / pyqt5 — arch-specific output dirs
 - general: any `ml64`/SSE/x64 asm paths
+
+## Build location constraint (important)
+meson, pkg-config and Qt break on paths containing spaces, and CMake/meson
+canonicalize junctions back to the real path -- so a junction with a spaced
+target does NOT help. The heavy build therefore lives at a real no-space path:
+
+    C:\kritadeps\{krita-deps-management, krita-ci-utilities, d, i, b}
+
+and is surfaced under the fork via a junction:
+
+    Documents\Krita ARM\deps-build  ->  C:\kritadeps
+
+So your files are still visible where you asked, but tools only ever see the
+no-space path. The git fork (tooling, patches, source) stays in Documents\Krita ARM.

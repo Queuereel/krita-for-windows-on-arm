@@ -5,10 +5,12 @@
 setlocal
 call "%~dp0dep-env.cmd" >nul 2>&1
 
-set "DEPS=C:\KritaARM\krita-deps-management"
-set "DL=C:\KritaARM\deps-build\d"
-set "PREFIX=C:\KritaARM\deps-build\i"
-set "BLD=C:\KritaARM\deps-build\b"
+:: No-space real paths: spaces break meson/pkg-config/Qt. Surfaced under
+:: Documents\Krita ARM\deps-build via a junction for visibility.
+set "DEPS=C:\kritadeps\krita-deps-management"
+set "DL=C:\kritadeps\d"
+set "PREFIX=C:\kritadeps\i"
+set "BLD=C:\kritadeps\b"
 
 for %%P in (%*) do call :one %%P
 echo.
