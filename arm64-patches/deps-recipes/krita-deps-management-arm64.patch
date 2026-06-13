@@ -1,5 +1,5 @@
 diff --git a/ext_boost/CMakeLists.txt b/ext_boost/CMakeLists.txt
-index 7b6ccd4..66c73ef 100644
+index 7b6ccd4..50f4d39 100644
 --- a/ext_boost/CMakeLists.txt
 +++ b/ext_boost/CMakeLists.txt
 @@ -78,7 +78,13 @@ if(WIN32)
@@ -17,18 +17,32 @@ index 7b6ccd4..66c73ef 100644
  
          # Boost.Build cannot append arbitrary flags to MSVC from the command line.
          # It becomes unable to detect the target architecture or defaults to x86 only.
-@@ -90,7 +96,10 @@ if(WIN32)
+@@ -90,6 +96,10 @@ if(WIN32)
              URL https://archives.boost.io/release/1.81.0/source/boost_1_81_0.tar.bz2
              URL_HASH SHA256=71feeed900fbccca04a3b4f2f84a7c217186f28a940ed8b7ed4725986baf99fa
  
--            CONFIGURE_COMMAND <SOURCE_DIR>/bootstrap.bat msvc --prefix=${EXTPREFIX}
-+            # Hardened Windows won't run config_toolset.bat from the cwd, so boost's
-+            # engine build can't detect msvc. Prepend the engine dir to PATH at runtime
-+            # (via cmd's %PATH%) so config_toolset.bat resolves during bootstrap.
-+            CONFIGURE_COMMAND cmd /c "set PATH=<SOURCE_DIR>\\tools\\build\\src\\engine;%PATH% && <SOURCE_DIR>\\bootstrap.bat msvc --prefix=${EXTPREFIX}"
++            # Hardened Windows won't run config_toolset.bat from the cwd (system policy),
++            # and `call <name>.bat` doesn't reliably search PATH here, so boost's engine
++            # build can't detect msvc. Rewrite the bare calls to explicit %~dp0 paths.
++            PATCH_COMMAND sed -i -e [[s/call guess_toolset.bat/call "%~dp0guess_toolset.bat"/]] -e [[s/call config_toolset.bat/call "%~dp0config_toolset.bat"/]] <SOURCE_DIR>/tools/build/src/engine/build.bat
+             CONFIGURE_COMMAND <SOURCE_DIR>/bootstrap.bat msvc --prefix=${EXTPREFIX}
              BUILD_COMMAND ${CMAKE_COMMAND} -DPREFIX=${EXTPREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/run-b2-with-destdir.cmake -- ${BUILD_ARGS}
              INSTALL_COMMAND ${CMAKE_COMMAND} -DPREFIX=${EXTPREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/run-b2-with-destdir.cmake -- ${BUILD_ARGS} install
+diff --git a/ext_boost/run-b2-with-destdir.cmake b/ext_boost/run-b2-with-destdir.cmake
+index e4bdef4..dbc51dc 100644
+--- a/ext_boost/run-b2-with-destdir.cmake
++++ b/ext_boost/run-b2-with-destdir.cmake
+@@ -14,7 +14,9 @@ endif()
  
+ if (NOT DEFINED B2_COMMAND)
+     if(WIN32)
+-        set(B2_COMMAND "b2")
++        # Hardened Windows won't exec b2 from the cwd; use its absolute path.
++        # In `cmake -P` mode CMAKE_BINARY_DIR is the invoking cwd (boost source).
++        set(B2_COMMAND "${CMAKE_BINARY_DIR}/b2.exe")
+     else()
+         set(B2_COMMAND "./b2")
+     endif()
 diff --git a/ext_openssl/CMakeLists.txt b/ext_openssl/CMakeLists.txt
 index f42ff77..2f5f2d4 100644
 --- a/ext_openssl/CMakeLists.txt
