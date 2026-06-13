@@ -1,3 +1,34 @@
+diff --git a/ext_boost/CMakeLists.txt b/ext_boost/CMakeLists.txt
+index 7b6ccd4..66c73ef 100644
+--- a/ext_boost/CMakeLists.txt
++++ b/ext_boost/CMakeLists.txt
+@@ -78,7 +78,13 @@ if(WIN32)
+             )
+         endif()
+     else()
+-        set (BUILD_ARGS -j${SUBMAKE_JOBS} --with-system --build-dir=build-dir toolset=msvc variant=release link=shared threading=multi architecture=x86 install)
++        # arm64 needs architecture=arm; x64/x86 use architecture=x86 (b2 naming)
++        if (CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64|arm64")
++            set(KRITA_BOOST_B2_ARCH arm)
++        else()
++            set(KRITA_BOOST_B2_ARCH x86)
++        endif()
++        set (BUILD_ARGS -j${SUBMAKE_JOBS} --with-system --build-dir=build-dir toolset=msvc variant=release link=shared threading=multi architecture=${KRITA_BOOST_B2_ARCH} address-model=64 install)
+ 
+         # Boost.Build cannot append arbitrary flags to MSVC from the command line.
+         # It becomes unable to detect the target architecture or defaults to x86 only.
+@@ -90,7 +96,10 @@ if(WIN32)
+             URL https://archives.boost.io/release/1.81.0/source/boost_1_81_0.tar.bz2
+             URL_HASH SHA256=71feeed900fbccca04a3b4f2f84a7c217186f28a940ed8b7ed4725986baf99fa
+ 
+-            CONFIGURE_COMMAND <SOURCE_DIR>/bootstrap.bat msvc --prefix=${EXTPREFIX}
++            # Hardened Windows won't run config_toolset.bat from the cwd, so boost's
++            # engine build can't detect msvc. Prepend the engine dir to PATH at runtime
++            # (via cmd's %PATH%) so config_toolset.bat resolves during bootstrap.
++            CONFIGURE_COMMAND cmd /c "set PATH=<SOURCE_DIR>\\tools\\build\\src\\engine;%PATH% && <SOURCE_DIR>\\bootstrap.bat msvc --prefix=${EXTPREFIX}"
+             BUILD_COMMAND ${CMAKE_COMMAND} -DPREFIX=${EXTPREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/run-b2-with-destdir.cmake -- ${BUILD_ARGS}
+             INSTALL_COMMAND ${CMAKE_COMMAND} -DPREFIX=${EXTPREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/run-b2-with-destdir.cmake -- ${BUILD_ARGS} install
+ 
 diff --git a/ext_openssl/CMakeLists.txt b/ext_openssl/CMakeLists.txt
 index f42ff77..2f5f2d4 100644
 --- a/ext_openssl/CMakeLists.txt

@@ -67,3 +67,10 @@ Hard failures (each a real arm64 port):
   TODO: disable IMF_HAVE_SSE2 / SSE paths for arm64.
 - **seexpr** (optional plugin lib): a `find_package` at CMakeLists:222 fails. Low priority.
 
+
+## openssl DONE (from source, native arm64). boost WIP
+- openssl: built 1.1.1w from source, libcrypto-1_1-arm64.dll (PE=ARM64). 32 deps total.
+- boost: bootstrap fails - build.bat 'call config_toolset.bat' needs cwd exec (disabled
+  by system policy). PATH-prepend insufficient; needs a source patch to build.bat to
+  call with %~dp0. WIP.
+
