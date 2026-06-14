@@ -69,7 +69,11 @@ Under the hood it runs `scripts/build-krita-arm64.ps1`, which drives KDE's
 
 ## Credits / license
 
-Krita is © the Krita / KDE community (GPL). The arm64 build tooling and patches
-in this repo are provided under the same licenses as the files they modify.
-This is an unofficial community port, made with care for everyone painting on an
-ARM laptop.
+Krita is © the Krita / KDE community (GPL). This project's own build tooling is
+GPL-3.0-or-later; every patched or vendored file keeps its upstream license,
+preserved in its header. Full details in **[LICENSE.md](LICENSE.md)**.
+
+This is an **unofficial, independent community port** — not affiliated with or
+endorsed by the Krita Foundation or KDE. The "Krita" name and logo are
+trademarks of the Krita Foundation, used here only to identify a faithful native
+build. Made with care for everyone painting on an ARM laptop.
