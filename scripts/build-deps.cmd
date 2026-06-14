@@ -21,7 +21,7 @@ goto :eof
 echo.
 echo ===== ext_%1 =====
 if not exist "%DEPS%\ext_%1\CMakeLists.txt" ( echo SKIP_NOEXIST: %1 & exit /b 0 )
-cmake -S "%DEPS%\ext_%1" -B "%BLD%\ext_%1" -G Ninja -DEXTERNALS_DOWNLOAD_DIR="%DL%" -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="%PREFIX%"
+cmake -S "%DEPS%\ext_%1" -B "%BLD%\ext_%1" -G Ninja -DEXTERNALS_DOWNLOAD_DIR="%DL%" -DCMAKE_INSTALL_PREFIX="%PREFIX%" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="%PREFIX%" -DPython_ROOT_DIR=C:\kritadeps\python313-dev -DPython_EXECUTABLE=C:\kritadeps\python313-dev\python.exe
 if errorlevel 1 ( echo CONFIGURE_FAILED: %1 & exit /b 0 )
 :: ext_install is the canonical install target (global-config.yml force-install-target).
 :: Some recipes (e.g. freetype) stage into a bootstrap prefix and only copy into the

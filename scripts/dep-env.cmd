@@ -11,8 +11,13 @@ set "VSROOT=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
 set "PYSCRIPTS=%LOCALAPPDATA%\Programs\Python\Python311\Scripts"
 :: Strawberry (Windows-native) perl MUST precede Git's msys perl: openssl/Qt Configure
 :: break with msys perl (it emits unix-style paths). Built by ext_strawberryperl.
+:: clang-cl (LLVM, arm64 NEON-capable) for deps whose SIMD is GCC/Clang-only (x265)
+set "LLVMBIN=C:\kritadeps\LLVM\bin"
 set "SBPERL=C:\kritadeps\i\Strawberry\perl\bin;C:\kritadeps\i\Strawberry\c\bin"
-set "PATH=%SBPERL%;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%PYSCRIPTS%;C:\Program Files\Git\usr\bin;%PATH%"
+:: ARM64 Python 3.13 full install - must precede x64 Python311 so cmake find_package(Python)
+:: picks up the ARM64 interpreter + headers for sip/PyQt5 compilation
+set "ARM64PY=C:\kritadeps\python313-dev;C:\kritadeps\python313-dev\Scripts"
+set "PATH=%ARM64PY%;%SBPERL%;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%PYSCRIPTS%;C:\Program Files\Git\usr\bin;%PATH%;%LLVMBIN%"
 call "%VSROOT%\VC\Auxiliary\Build\vcvarsall.bat" arm64
 
 :: Put the install prefix bin on PATH so config-test probe exes (e.g. Qt's ICU
