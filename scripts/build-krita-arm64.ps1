@@ -168,11 +168,47 @@ function Build-Deps {
 }
 
 # ---------------------------------------------------------------------------
-# 4. Krita
+# 4. Krita source: fetch + apply ARM64 overlays
+# ---------------------------------------------------------------------------
+# Krita's own source is NOT vendored in this repo (it is large and lives
+# upstream, exactly like KDE keeps deps out of the Krita repo). We clone the
+# official repo and drop our patched files over it. The patches are stored as
+# full-file overlays (arm64-patches/krita-source/<same relative path>), so they
+# replace whole files and do not depend on a fragile line-level diff.
+$KritaGitUrl = "https://invent.kde.org/graphics/krita.git"
+$KritaGitRef = "master"   # 5.3.2.1 (Qt5) line; override if upstream drifts
+
+function Sync-KritaSource {
+    if (Test-Path (Join-Path $KritaSrc "CMakeLists.txt")) {
+        Ok "krita-src already present at $KritaSrc"
+    } else {
+        Info "Cloning Krita source ($KritaGitRef) into $KritaSrc"
+        git clone --depth 1 --branch $KritaGitRef $KritaGitUrl $KritaSrc
+        if ($LASTEXITCODE -ne 0) { Die "Failed to clone Krita source." }
+    }
+
+    $srcPatches = Join-Path $PatchDir "krita-source"
+    if (Test-Path $srcPatches) {
+        Info "Applying ARM64 source overlays"
+        Get-ChildItem $srcPatches -Recurse -File | ForEach-Object {
+            $rel  = $_.FullName.Substring($srcPatches.Length).TrimStart('\')
+            $dest = Join-Path $KritaSrc $rel
+            if (-not (Test-Path (Split-Path $dest))) {
+                Warn "overlay target dir missing for $rel (upstream may have moved it); skipping"
+                return
+            }
+            Copy-Item $_.FullName $dest -Force
+            Ok "overlay $rel"
+        }
+    }
+}
+
+# ---------------------------------------------------------------------------
+# 5. Krita build
 # ---------------------------------------------------------------------------
 function Build-Krita {
     if (-not (Test-Path (Join-Path $KritaSrc "CMakeLists.txt"))) {
-        Die "krita-src not found at $KritaSrc. It ships in this repo; check your checkout."
+        Die "krita-src not found at $KritaSrc after sync; cannot continue."
     }
     Info "Configuring Krita (Python scripting enabled)"
     & cmd /c "`"$(Join-Path $ScriptsDir 'configure-krita.bat')`""
@@ -189,7 +225,7 @@ function Build-Krita {
 }
 
 # ---------------------------------------------------------------------------
-# 5. Package + installer
+# 6. Package + installer
 # ---------------------------------------------------------------------------
 function Package-Krita {
     if ($NoPackage) { Info "Skipping packaging (-NoPackage)"; return }
@@ -203,6 +239,7 @@ Install-Prereqs
 Sync-Sources
 Build-Deps
 if ($DepsOnly) { Ok "Dependencies built (-DepsOnly). Stopping before Krita."; exit 0 }
+Sync-KritaSource
 Build-Krita
 Package-Krita
 Ok "DONE.  Installer + zip are under $RepoRoot\packaging\arm64-installer\ (and $DepsRoot\pkg)."
