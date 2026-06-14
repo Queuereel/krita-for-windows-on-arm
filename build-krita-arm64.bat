@@ -28,7 +28,9 @@ set "RC=%errorlevel%"
 echo.
 if "%RC%"=="0" (
     echo ============================================================
-    echo  BUILD COMPLETE.  Run:  C:\CraftRoot\bin\krita.exe
+    echo  BUILD COMPLETE.
+    echo  Krita installed at:  C:\kritadeps\krita-install\bin\krita.exe
+    echo  Installer + zip:     packaging\arm64-installer\
     echo ============================================================
 ) else (
     echo Build stopped with exit code %RC%. See messages above.

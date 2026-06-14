@@ -74,11 +74,13 @@ The Python pins prevent cmake finding system Python 3.14 (no dev headers in pref
 
 ### DONE — Krita itself
 
-- **Krita 6.0.2.1** — compiled native ARM64 with pure MSVC cl.exe, 241/241
-  plugins linked. Installed to `C:\kritadeps\krita-install`. `krita.exe` PE
-  machine 0xAA64; launches natively (no emulation), main window initializes
-  clean. See `arm64-patches/KRITA-SOURCE-PATCHES.md` for the source patches.
-  Launch via `krita-install/bin/krita-launch.bat`.
+- **Krita 5.3.2.1** (Qt5 branch — the 6.0.2.1 string only applies to the Qt6
+  build path, which we did not build) — compiled native ARM64 with pure MSVC
+  cl.exe, 241/241 plugins linked. Installed to `C:\kritadeps\krita-install`.
+  `krita.exe` PE machine 0xAA64; launches natively (no emulation), main window
+  initializes clean. See `arm64-patches/KRITA-SOURCE-PATCHES.md` for the source
+  patches. The packaged tree launches directly via `bin/krita.exe`; a one-click
+  installer is built by `packaging/arm64-installer/`.
 
 ### PENDING / TODO
 

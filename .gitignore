@@ -18,3 +18,7 @@ desktop.ini
 .vs/
 .vscode/
 *.user
+
+# Release binaries (uploaded to GitHub Releases, not tracked)
+packaging/arm64-installer/*.exe
+packaging/arm64-installer/*.zip

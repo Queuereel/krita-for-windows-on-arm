@@ -3,48 +3,87 @@
     One-click native Windows-on-ARM64 Krita builder (from source, no emulation).
 
 .DESCRIPTION
-    Designed to run on a CLEAN ARM64 Windows 11 machine. Every step is idempotent:
-    it detects what is already present and only does what is missing. Stages:
+    Builds Krita and its full dependency tree natively for Windows on ARM64
+    using KDE's krita-deps-management recipes plus the ARM64 fixes tracked in
+    this repository. This is the *actual* flow used to produce the published
+    release -- not a wrapper around KDE Craft.
 
-      1. Prerequisites  - Git, Python, VS 2022 Build Tools (+ native ARM64 C++)
-      2. Craft bootstrap - KDE Craft set up with ABI windows-cl-msvc2022-arm64
-      3. ARM64 patches   - apply the fixes that make the toolchain build on arm64
-      4. Build           - compile Krita's dependency tree, then Krita itself
+    Stages (each is idempotent; re-run safely):
 
-    Re-run safely at any time; completed work is cached by Craft.
+      1. Prerequisites  - Git, ARM64 Python 3.13, VS 2022 Build Tools (ARM64 C++),
+                          LLVM/clang-cl (for x265 NEON)
+      2. Sources        - clone krita-deps-management; apply this repo's ARM64
+                          recipe + header patches over it
+      3. Dependencies   - build every ext_* dep into the shared prefix, in order
+      4. Python binding - build the ARM64 PyQt5.sip runtime module
+      5. Krita          - configure (scripting on) -> ninja -> install
+      6. Package        - assemble the self-contained tree + build the setup .exe
+
+    Expect the first full run to take *hours*: it compiles Qt, the KDE
+    Frameworks, image/codec libraries and Krita itself from source.
 
 .NOTES
-    STATUS: work in progress. The dependency tree (Qt6/KF6/...) is large and some
-    blueprints still need arm64 fixes; see arm64-patches\CHANGES.md.
+    Requires a Windows 11 ARM64 machine. See arm64-patches/CHANGES.md and
+    arm64-patches/KRITA-SOURCE-PATCHES.md for what each patch fixes.
 #>
 [CmdletBinding()]
 param(
-    [string]$CraftRoot = "C:\CraftRoot",
-    [switch]$SkipPrereqs,   # skip winget installs (use if toolchain already present)
-    [switch]$DepsOnly,      # build only Krita's dependencies, not Krita
-    [switch]$Resume         # skip bootstrap/patch, jump straight to building
+    [string]$DepsRoot   = "C:\kritadeps",       # build root (no spaces!)
+    [switch]$SkipPrereqs,                        # toolchain already installed
+    [switch]$DepsOnly,                           # stop after the dependency tree
+    [switch]$SkipDeps,                           # jump straight to building Krita
+    [switch]$NoPackage                           # skip packaging + installer
 )
 
 $ErrorActionPreference = "Stop"
 $RepoRoot   = Split-Path -Parent $PSScriptRoot
+$ScriptsDir = Join-Path $RepoRoot "scripts"
 $PatchDir   = Join-Path $RepoRoot "arm64-patches"
 $KritaSrc   = Join-Path $RepoRoot "krita-src"
-$VsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
 
-function Info($m)  { Write-Host "`n==> $m" -ForegroundColor Cyan }
-function Ok($m)    { Write-Host "    [ok] $m" -ForegroundColor Green }
-function Warn($m)  { Write-Host "    [!] $m"  -ForegroundColor Yellow }
-function Die($m)   { Write-Host "`n[FATAL] $m" -ForegroundColor Red; exit 1 }
+$Prefix     = Join-Path $DepsRoot "i"
+$DepsMgmt   = Join-Path $DepsRoot "krita-deps-management"
 
-# --- sanity ----------------------------------------------------------------
+function Info($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
+function Ok($m)   { Write-Host "    [ok] $m" -ForegroundColor Green }
+function Warn($m) { Write-Host "    [!] $m"  -ForegroundColor Yellow }
+function Die($m)  { Write-Host "`n[FATAL] $m" -ForegroundColor Red; exit 1 }
+function Have($e) { [bool](Get-Command $e -ErrorAction SilentlyContinue) }
+
 if ($env:PROCESSOR_ARCHITECTURE -ne "ARM64") {
     Warn "This machine reports $env:PROCESSOR_ARCHITECTURE, not ARM64."
     Warn "A native arm64 build only makes sense on Windows-on-ARM. Continuing anyway."
 }
 
-function Have($exe) { [bool](Get-Command $exe -ErrorAction SilentlyContinue) }
+# Canonical build order: foundational libs first, then codecs, KDE Frameworks,
+# Qt, Python bindings, and finally the media stack. Mirrors the verified order
+# in BUILD-STATE.md. Names map to ext_<name> recipe dirs.
+$DepOrder = @(
+    # toolchain helpers + foundational
+    'nasm','pkgconfig','extra_cmake_modules','strawberryperl','patch',
+    'zlib','iconv','gettext','expat','png','jpeg','tiff','webp','openjpeg',
+    'lcms2','giflib','gsl','eigen3','xsimd','immer','zug','lager','highway',
+    'brotli','unibreak','fribidi','json_c',
+    # text/render
+    'freetype','fontconfig','openssl','boost',
+    'openexr','exiv2','seexpr','libraw','ocio','mypaint','quazip',
+    # audio/video codecs
+    'fftw3','libogg','libvorbis','flac','opus','lame','vpx','libde265',
+    'libaom','sdl2','jpegxl','openh264','libx265','libx265_10bit','libx265_12bit',
+    'libheif',
+    # KDE Frameworks 5
+    'karchive','kconfig','kcoreaddons','ki18n','kwidgetsaddons','kcompletion',
+    'kguiaddons','kitemmodels','kitemviews','kwindowsystem','kcrash',
+    'kimageformats','kdcraw',
+    # graphics stack + Qt
+    'googleangle','icu','qt',
+    # python + media
+    'python','sip','pyqt5','ffmpeg','mlt'
+)
 
-# --- 1. prerequisites ------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 1. Prerequisites
+# ---------------------------------------------------------------------------
 function Install-Prereqs {
     if ($SkipPrereqs) { Info "Skipping prerequisite install (-SkipPrereqs)"; return }
     Info "Checking prerequisites"
@@ -55,113 +94,115 @@ function Install-Prereqs {
         winget install --id Git.Git -e --accept-source-agreements --accept-package-agreements
     } else { Ok "Git present" }
 
-    if (-not (Have python)) {
-        Info "Installing Python 3.11"
-        winget install --id Python.Python.3.11 -e --accept-source-agreements --accept-package-agreements
-    } else { Ok "Python present" }
-
-    # VS 2022 Build Tools with the native ARM64 C++ toolchain
     $haveArmCl = Test-Path "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\*\bin\Hostarm64\arm64\cl.exe"
     if (-not $haveArmCl) {
-        Info "Installing VS 2022 Build Tools + ARM64 C++ (large download; approve the UAC/installer prompts)"
+        Info "Installing VS 2022 Build Tools + ARM64 C++ (large; approve the prompts)"
         $comps = @(
             "Microsoft.VisualStudio.Workload.VCTools",
             "Microsoft.VisualStudio.Component.VC.Tools.ARM64",
             "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
             "Microsoft.VisualStudio.Component.VC.ATL.ARM64",
-            "Microsoft.VisualStudio.Component.Windows11SDK.22621",
-            "Microsoft.VisualStudio.Component.VC.CMake.Project"
+            "Microsoft.VisualStudio.Component.Windows11SDK.22621"
         )
         $override = "--quiet --wait --norestart " + (($comps | ForEach-Object { "--add $_" }) -join " ") + " --includeRecommended"
         winget install --id Microsoft.VisualStudio.2022.BuildTools -e `
             --accept-source-agreements --accept-package-agreements --override $override
     } else { Ok "ARM64 MSVC toolchain present" }
 
-    # vcvarsall.bat needs vswhere.exe on PATH or it pollutes Craft's env-dump.
-    if ((Test-Path "$VsInstaller\vswhere.exe") -and ($env:Path -notlike "*$VsInstaller*")) {
-        $env:Path = "$VsInstaller;$env:Path"
-        Ok "Added VS Installer dir to PATH (for this session)"
-    }
+    if (-not (Test-Path "$DepsRoot\python313-dev\python.exe")) {
+        Warn "ARM64 Python 3.13 dev install not found at $DepsRoot\python313-dev."
+        Warn "Download the Windows ARM64 installer from python.org (3.13.x) and install"
+        Warn "it there (with headers/pip), or adjust dep-env.cmd. Continuing."
+    } else { Ok "ARM64 Python 3.13 present" }
+
+    if (-not (Test-Path "$DepsRoot\LLVM\bin\clang-cl.exe")) {
+        Warn "LLVM (clang-cl) not found at $DepsRoot\LLVM. Needed only for x265 NEON."
+        Warn "Install the Windows ARM64 LLVM release there if you build x265. Continuing."
+    } else { Ok "LLVM/clang-cl present" }
 }
 
-# --- 2. Craft bootstrap ----------------------------------------------------
-function Bootstrap-Craft {
-    if (Test-Path "$CraftRoot\craft-tmp\bin\craft.py") { Ok "Craft already bootstrapped at $CraftRoot"; return }
-    Info "Bootstrapping KDE Craft (arm64 ABI) into $CraftRoot"
-    $bs = Join-Path $env:TEMP "CraftBootstrap.py"
-    Invoke-WebRequest "https://raw.githubusercontent.com/KDE/craft/master/setup/CraftBootstrap.py" -OutFile $bs -UseBasicParsing
-    # The Windows bootstrap path never prompts for architecture and hardcodes
-    # x86_64; flip the default to arm64 so we get windows-cl-msvc2022-arm64.
-    (Get-Content $bs -Raw) -replace 'arch = "x86_64"', 'arch = "arm64"' | Set-Content $bs -Encoding UTF8
-    & python $bs --prefix $CraftRoot --use-defaults
-}
+# ---------------------------------------------------------------------------
+# 2. Sources + patches
+# ---------------------------------------------------------------------------
+function Sync-Sources {
+    Info "Preparing krita-deps-management"
+    if (-not (Test-Path (Join-Path $DepsMgmt ".git"))) {
+        if (-not (Test-Path $DepsRoot)) { New-Item -ItemType Directory -Force $DepsRoot | Out-Null }
+        git clone https://invent.kde.org/dmitryk/krita-deps-management.git $DepsMgmt
+    } else { Ok "krita-deps-management present" }
 
-# --- 3. apply ARM64 patches ------------------------------------------------
-function Apply-Patches {
-    Info "Applying ARM64 patches"
-
-    # 3a. Craft core: add the arm64 vcvars arg to getMSVCEnv's architectures map.
-    Get-ChildItem $CraftRoot -Recurse -Filter CraftSetupHelper.py -ErrorAction SilentlyContinue | ForEach-Object {
-        $t = Get-Content $_.FullName -Raw
-        if ($t -notmatch 'Architecture\.arm64: "arm64"') {
-            $t = $t -replace '(Architecture\.x86_64: "amd64",)', "`$1`n                CraftCore.compiler.Architecture.arm64: `"arm64`","
-            $t = $t -replace '(Architecture\.x86_64: "x86_amd64",)', "`$1`n                CraftCore.compiler.Architecture.arm64: `"arm64`","
-            Set-Content $_.FullName $t -Encoding UTF8
-            Ok "patched $($_.Name)"
-        }
-    }
-
-    # 3b. Blueprint fixes: drop our patched .py files over every matching blueprint
-    # location Craft knows about (craft-tmp during bootstrap, and the installed
-    # craft-blueprints-kde checkout once present).
-    $bpRoot = Join-Path $PatchDir "blueprints"
-    if (Test-Path $bpRoot) {
-        Get-ChildItem $bpRoot -Recurse -File -Filter *.py | ForEach-Object {
-            $rel = $_.FullName.Substring($bpRoot.Length).TrimStart('\')
-            $copied = 0
-            Get-ChildItem $CraftRoot -Recurse -Directory -Filter blueprints -ErrorAction SilentlyContinue | ForEach-Object {
-                $dest = Join-Path $_.FullName $rel
-                if (Test-Path (Split-Path $dest)) { Copy-Item $_.FullName $dest -Force -ErrorAction SilentlyContinue }
-                if (Test-Path $dest) { Copy-Item $_.FullName $dest -Force; $copied++ }
-            }
-            Ok "blueprint $rel -> $copied location(s)"
+    # Apply our ARM64 recipe + prefix-header patches (full-file overlays).
+    $recipeSrc = Join-Path $PatchDir "deps-recipes"
+    if (Test-Path $recipeSrc) {
+        Info "Applying ARM64 recipe patches"
+        Get-ChildItem $recipeSrc -Recurse -File | ForEach-Object {
+            $rel  = $_.FullName.Substring($recipeSrc.Length).TrimStart('\')
+            $dest = Join-Path $DepsMgmt $rel
+            New-Item -ItemType Directory -Force (Split-Path $dest) | Out-Null
+            Copy-Item $_.FullName $dest -Force
+            Ok "recipe $rel"
         }
     }
 }
 
-# --- 4. build --------------------------------------------------------------
-function Invoke-Craft([string[]]$craftArgs) {
-    if ((Test-Path "$VsInstaller\vswhere.exe") -and ($env:Path -notlike "*$VsInstaller*")) {
-        $env:Path = "$VsInstaller;$env:Path"
+# ---------------------------------------------------------------------------
+# 3. Dependencies
+# ---------------------------------------------------------------------------
+function Build-Deps {
+    if ($SkipDeps) { Info "Skipping dependency build (-SkipDeps)"; return }
+    Info "Building dependency tree (this is the long stage)"
+    $buildDeps = Join-Path $ScriptsDir "build-deps.cmd"
+    foreach ($dep in $DepOrder) {
+        if (-not (Test-Path (Join-Path $DepsMgmt "ext_$dep\CMakeLists.txt"))) {
+            Warn "ext_$dep not present in recipes; skipping"
+            continue
+        }
+        Info "dep: $dep"
+        & cmd /c "`"$buildDeps`" $dep"
+        if ($LASTEXITCODE -ne 0) { Die "Dependency '$dep' failed. See logs; fix the recipe and re-run." }
     }
-    & python "$CraftRoot\craft-tmp\bin\craft.py" @craftArgs
-    if ($LASTEXITCODE -ne 0) { throw "craft $($craftArgs -join ' ') failed (exit $LASTEXITCODE)" }
+    Ok "All dependencies built into $Prefix"
+
+    Info "Building ARM64 PyQt5.sip runtime module"
+    & cmd /c "`"$(Join-Path $ScriptsDir 'build-pyqt5sip.bat')`""
 }
 
-function Build {
-    Info "Finalizing Craft (builds its core toolchain on first run)"
-    Invoke-Craft @("craft")
-
-    Info "Building Krita's dependency tree for arm64 (this is the long one)"
-    Invoke-Craft @("--install-deps", "krita")
-
-    if ($DepsOnly) { Ok "Dependencies built (-DepsOnly). Stopping before Krita."; return }
-
-    Info "Building Krita"
-    # Prefer building the bundled source tree if present; else let Craft fetch it.
-    if (Test-Path (Join-Path $KritaSrc "CMakeLists.txt")) {
-        Warn "Local krita-src build wiring is handled in a later step; using Craft's krita blueprint for now."
+# ---------------------------------------------------------------------------
+# 4. Krita
+# ---------------------------------------------------------------------------
+function Build-Krita {
+    if (-not (Test-Path (Join-Path $KritaSrc "CMakeLists.txt"))) {
+        Die "krita-src not found at $KritaSrc. It ships in this repo; check your checkout."
     }
-    Invoke-Craft @("krita")
-    Ok "Build finished. Launch with:  $CraftRoot\bin\krita.exe"
+    Info "Configuring Krita (Python scripting enabled)"
+    & cmd /c "`"$(Join-Path $ScriptsDir 'configure-krita.bat')`""
+    if ($LASTEXITCODE -ne 0) { Die "Krita configure failed." }
+
+    Info "Compiling Krita"
+    & cmd /c "`"$(Join-Path $ScriptsDir 'build-krita.bat')`""
+    if ($LASTEXITCODE -ne 0) { Die "Krita build failed." }
+
+    Info "Installing Krita"
+    & cmd /c "`"$(Join-Path $ScriptsDir 'install-krita.bat')`""
+    if ($LASTEXITCODE -ne 0) { Die "Krita install failed." }
+    Ok "Krita installed to $DepsRoot\krita-install"
 }
 
-# --- run -------------------------------------------------------------------
-Info "Native ARM64 Krita builder  |  CraftRoot=$CraftRoot"
-if (-not $Resume) {
-    Install-Prereqs
-    Bootstrap-Craft
-    Apply-Patches
+# ---------------------------------------------------------------------------
+# 5. Package + installer
+# ---------------------------------------------------------------------------
+function Package-Krita {
+    if ($NoPackage) { Info "Skipping packaging (-NoPackage)"; return }
+    Info "Packaging self-contained tree + installer"
+    & (Join-Path $ScriptsDir "package-krita-arm64.ps1") -DepsRoot $DepsRoot
 }
-Build
-Ok "DONE."
+
+# ---------------------------------------------------------------------------
+Info "Native ARM64 Krita builder  |  DepsRoot=$DepsRoot"
+Install-Prereqs
+Sync-Sources
+Build-Deps
+if ($DepsOnly) { Ok "Dependencies built (-DepsOnly). Stopping before Krita."; exit 0 }
+Build-Krita
+Package-Krita
+Ok "DONE.  Installer + zip are under $RepoRoot\packaging\arm64-installer\ (and $DepsRoot\pkg)."
