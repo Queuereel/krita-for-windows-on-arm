@@ -2,6 +2,8 @@
 
 Native **ARM64** build of Krita for Windows.
 
+<img width="334" height="98" alt="image" src="https://github.com/user-attachments/assets/d4cf777d-bdaa-4056-a3f9-7afdfaf4d455" />
+
 Go to releases page and download the latest .zip file and extract it wherever you want 
 on your Windows 11 ARM64 machine and run krita-x.x.x.x-windows-arm64-setup.exe
 
