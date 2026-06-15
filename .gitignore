@@ -19,6 +19,9 @@ desktop.ini
 .vscode/
 *.user
 
+# Build log written by build-krita-arm64.bat
+build-log.txt
+
 # Release binaries (uploaded to GitHub Releases, not tracked)
 packaging/arm64-installer/*.exe
 packaging/arm64-installer/*.zip
