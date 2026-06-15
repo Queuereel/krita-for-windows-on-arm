@@ -100,5 +100,3 @@ void KisRootSurfaceInfoProxy::tryUpdateRootSurfaceProfile()
         Q_EMIT sigRootSurfaceProfileChanged(m_rootSurfaceProfile);
     }
 }
-
-#include "moc_KisRootSurfaceInfoProxy.cpp"
